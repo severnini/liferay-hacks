@@ -36,81 +36,81 @@ import org.apache.commons.lang.time.StopWatch;
 
 def runJournalArticleVersionCleaner(int maxVersions, boolean commitDeletion, int[] status) {
 
-	Log log = LogFactoryUtil.getLog("JournalArticleVersionCleaner");
+    Log log = LogFactoryUtil.getLog("JournalArticleVersionCleaner");
 
-	StopWatch stopWatch = new StopWatch();
-	stopWatch.start();
+    StopWatch stopWatch = new StopWatch();
+    stopWatch.start();
 
-	long deleteCount = 0;
+    long deleteCount = 0;
 
-	int buffer = 1000;
-	int start = 0;
-	int end = buffer;
+    int buffer = 1000;
+    int start = 0;
+    int end = buffer;
 
-	ArticleVersionComparator articleVersionComparator = new ArticleVersionComparator(true);
+    ArticleVersionComparator articleVersionComparator = new ArticleVersionComparator(true);
 
-	DynamicQuery dynamicQueryRPK = DynamicQueryFactoryUtil.forClass(JournalArticle.class, "articles", PortalClassLoaderUtil.getClassLoader());
+    DynamicQuery dynamicQueryRPK = DynamicQueryFactoryUtil.forClass(JournalArticle.class, "articles", PortalClassLoaderUtil.getClassLoader());
 
-	ProjectionList projectionList = ProjectionFactoryUtil.projectionList();
-	projectionList.add(ProjectionFactoryUtil.distinct(ProjectionFactoryUtil.property("resourcePrimKey")));
-	projectionList.add(ProjectionFactoryUtil.property("articleId"));
-	projectionList.add(ProjectionFactoryUtil.property("groupId"));
+    ProjectionList projectionList = ProjectionFactoryUtil.projectionList();
+    projectionList.add(ProjectionFactoryUtil.distinct(ProjectionFactoryUtil.property("resourcePrimKey")));
+    projectionList.add(ProjectionFactoryUtil.property("articleId"));
+    projectionList.add(ProjectionFactoryUtil.property("groupId"));
 
-	dynamicQueryRPK.setProjection(projectionList);
-	dynamicQueryRPK.addOrder(OrderFactoryUtil.desc("resourcePrimKey"));
+    dynamicQueryRPK.setProjection(projectionList);
+    dynamicQueryRPK.addOrder(OrderFactoryUtil.desc("resourcePrimKey"));
 
-	try {
-		List<Object[]> articles = JournalArticleLocalServiceUtil.dynamicQuery(dynamicQueryRPK, start, end);
+    try {
+        List<Object[]> articles = JournalArticleLocalServiceUtil.dynamicQuery(dynamicQueryRPK, start, end);
 
-		while(!articles.isEmpty()) {
+        while(!articles.isEmpty()) {
 
-			log.info("Processing from " + start + " to " + end);
+            log.info("Processing from " + start + " to " + end);
 
-			for (Object[] obj : articles) {
-				DynamicQuery dynamicQuery = JournalArticleLocalServiceUtil.dynamicQuery();
-				dynamicQuery.add(RestrictionsFactoryUtil.eq("articleId", obj[1].toString()));
-				dynamicQuery.add(RestrictionsFactoryUtil.eq("groupId", Long.parseLong(obj[2].toString())));
+            for (Object[] obj : articles) {
+                DynamicQuery dynamicQuery = JournalArticleLocalServiceUtil.dynamicQuery();
+                dynamicQuery.add(RestrictionsFactoryUtil.eq("articleId", obj[1].toString()));
+                dynamicQuery.add(RestrictionsFactoryUtil.eq("groupId", Long.parseLong(obj[2].toString())));
 
-				if (status.length > 0) {
-    				dynamicQuery.add(PropertyFactoryUtil.forName("status").in(status));
-    			}
+                if (status.length > 0) {
+                    dynamicQuery.add(PropertyFactoryUtil.forName("status").in(status));
+                }
 
-				try {
-					List<JournalArticle> list = JournalArticleLocalServiceUtil.dynamicQuery(dynamicQuery, QueryUtil.ALL_POS, QueryUtil.ALL_POS, articleVersionComparator);
+                try {
+                    List<JournalArticle> list = JournalArticleLocalServiceUtil.dynamicQuery(dynamicQuery, QueryUtil.ALL_POS, QueryUtil.ALL_POS, articleVersionComparator);
 
-					if (list.size() > maxVersions) {
-						log.info("resourcePrimKey: " + obj[0].toString() + " - articleId: " + obj[1].toString() + " - groupId: " + obj[2].toString());
+                    if (list.size() > maxVersions) {
+                        log.info("resourcePrimKey: " + obj[0].toString() + " - articleId: " + obj[1].toString() + " - groupId: " + obj[2].toString());
 
-						for (int i = 0; i < list.size() - maxVersions; i++) {
-							JournalArticle journalArticle = list.get(i);
-							log.info("Delete articleId: [" + journalArticle.getArticleId() + "] - version: [" + journalArticle.getVersion() + "] - title: [" + journalArticle.getTitleCurrentValue() + "] - commited: [" + commitDeletion + "]");
-							if (commitDeletion) {
-								JournalArticleLocalServiceUtil.deleteArticle(journalArticle);
-							}
-							deleteCount++;
-						}
-					}
-				} catch (Exception e) {
-					//do nothing
-				}
-			}
+                        for (int i = 0; i < list.size() - maxVersions; i++) {
+                            JournalArticle journalArticle = list.get(i);
+                            log.info("Delete articleId: [" + journalArticle.getArticleId() + "] - version: [" + journalArticle.getVersion() + "] - title: [" + journalArticle.getTitleCurrentValue() + "] - commited: [" + commitDeletion + "]");
+                            if (commitDeletion) {
+                                JournalArticleLocalServiceUtil.deleteArticle(journalArticle);
+                            }
+                            deleteCount++;
+                        }
+                    }
+                } catch (Exception e) {
+                    //do nothing
+                }
+            }
 
-			//Sleep 2 minutes each iteration
-			/* try { TimeUnit.MINUTES.sleep(2); } catch (InterruptedException e) { System.err.println(e); } */
+            //Sleep 2 minutes each iteration
+            /* try { TimeUnit.MINUTES.sleep(2); } catch (InterruptedException e) { System.err.println(e); } */
 
-			start = end;
-			end += buffer;
+            start = end;
+            end += buffer;
 
-			articles = JournalArticleLocalServiceUtil.dynamicQuery(dynamicQueryRPK, start, end);
-		}
-	}
-	catch (SystemException e) {
-		log.error(e);
-	}
+            articles = JournalArticleLocalServiceUtil.dynamicQuery(dynamicQueryRPK, start, end);
+        }
+    }
+    catch (SystemException e) {
+        log.error(e);
+    }
 
-	log.info("Deleted " + deleteCount + " versions - time: " + stopWatch.getTime() + " ms");
+    log.info("Deleted " + deleteCount + " versions - time: " + stopWatch.getTime() + " ms");
 
-	out.println("Deleted " + deleteCount + " versions - time: " + stopWatch.getTime() + " ms");
+    out.println("Deleted " + deleteCount + " versions - time: " + stopWatch.getTime() + " ms");
 }
 
 

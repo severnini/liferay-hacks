@@ -1,6 +1,7 @@
 /*******************************************************************************
 *
 * Script to clean JournalArticle (Web content) versions
+*
 * Author: Luiz Fernando Severnini
 * Date: 2018-04-19
 * Java version: 8
@@ -14,6 +15,7 @@ import com.liferay.portal.kernel.dao.orm.DynamicQueryFactoryUtil;
 import com.liferay.portal.kernel.dao.orm.OrderFactoryUtil;
 import com.liferay.portal.kernel.dao.orm.ProjectionFactoryUtil;
 import com.liferay.portal.kernel.dao.orm.ProjectionList;
+import com.liferay.portal.kernel.dao.orm.PropertyFactoryUtil;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.RestrictionsFactoryUtil;
 import com.liferay.portal.kernel.exception.SystemException;
@@ -22,6 +24,7 @@ import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.PortalClassLoaderUtil;
 import com.liferay.portal.kernel.util.PropsUtil;
+import com.liferay.portal.kernel.workflow.WorkflowConstants;
 import com.liferay.portal.model.BaseModelListener;
 import com.liferay.portlet.journal.model.JournalArticle;
 import com.liferay.portlet.journal.service.JournalArticleLocalServiceUtil;
@@ -31,7 +34,7 @@ import java.util.List;
 
 import org.apache.commons.lang.time.StopWatch;
 
-def runJournalArticleVersionCleaner(int maxVersions, boolean commitDeletion) {
+def runJournalArticleVersionCleaner(int maxVersions, boolean commitDeletion, int[] status) {
 
 	Log log = LogFactoryUtil.getLog("JournalArticleVersionCleaner");
 
@@ -67,6 +70,10 @@ def runJournalArticleVersionCleaner(int maxVersions, boolean commitDeletion) {
 				DynamicQuery dynamicQuery = JournalArticleLocalServiceUtil.dynamicQuery();
 				dynamicQuery.add(RestrictionsFactoryUtil.eq("articleId", obj[1].toString()));
 				dynamicQuery.add(RestrictionsFactoryUtil.eq("groupId", Long.parseLong(obj[2].toString())));
+
+				if (status.length > 0) {
+    				dynamicQuery.add(PropertyFactoryUtil.forName("status").in(status));
+    			}
 
 				try {
 					List<JournalArticle> list = JournalArticleLocalServiceUtil.dynamicQuery(dynamicQuery, QueryUtil.ALL_POS, QueryUtil.ALL_POS, articleVersionComparator);
@@ -106,11 +113,15 @@ def runJournalArticleVersionCleaner(int maxVersions, boolean commitDeletion) {
 	out.println("Deleted " + deleteCount + " versions - time: " + stopWatch.getTime() + " ms");
 }
 
+
 //If true will commit the delete, false will only log content that can be deleted
 boolean commitDeletion = false;
 
 //How many versions will be kept
 int maxVersions = 7;
 
+//Status that will be considered during cleaning, if empty will remove any status
+int[] status = [WorkflowConstants.STATUS_APPROVED];
+
 //Run cleaner
-runJournalArticleVersionCleaner(maxVersions, commitDeletion);
+runJournalArticleVersionCleaner(maxVersions, commitDeletion, status);

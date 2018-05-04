@@ -30,6 +30,7 @@ import com.liferay.portlet.journal.model.JournalArticle;
 import com.liferay.portlet.journal.service.JournalArticleLocalServiceUtil;
 import com.liferay.portlet.journal.util.comparator.ArticleVersionComparator;
 
+import java.util.concurrent.TimeUnit;
 import java.util.List;
 
 import org.apache.commons.lang.time.StopWatch;
@@ -108,9 +109,9 @@ def runJournalArticleVersionCleaner(int maxVersions, boolean commitDeletion, int
         log.error(e);
     }
 
-    log.info("Deleted " + deleteCount + " versions - time: " + stopWatch.getTime() + " ms - commited: [" + commitDeletion + "]");
-
-    out.println("Deleted " + deleteCount + " versions - time: " + stopWatch.getTime() + " ms - commited: [" + commitDeletion + "]");
+    String infoMsg = "Deleted " + deleteCount + " versions - time: " + TimeUnit.MILLISECONDS.toSeconds(stopWatch.getTime()) + "s - commited: [" + commitDeletion + "]";
+    log.info(infoMsg);
+    out.println(infoMsg);
 }
 
 

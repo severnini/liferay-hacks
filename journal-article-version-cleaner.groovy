@@ -108,9 +108,9 @@ def runJournalArticleVersionCleaner(int maxVersions, boolean commitDeletion, int
         log.error(e);
     }
 
-    log.info("Deleted " + deleteCount + " versions - time: " + stopWatch.getTime() + " ms");
+    log.info("Deleted " + deleteCount + " versions - time: " + stopWatch.getTime() + " ms - commited: [" + commitDeletion + "]");
 
-    out.println("Deleted " + deleteCount + " versions - time: " + stopWatch.getTime() + " ms");
+    out.println("Deleted " + deleteCount + " versions - time: " + stopWatch.getTime() + " ms - commited: [" + commitDeletion + "]");
 }
 
 
